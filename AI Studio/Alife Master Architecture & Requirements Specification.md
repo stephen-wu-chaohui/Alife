@@ -1,7 +1,7 @@
 # 1. Project Identity & Architecture
 **Project Name:** Alife (Abundant Life App)
 **Target Audience:** Abundant Life Church (Root Group)
-**Tech Stack:** * Frontend: Next.js 14 (App Router), React, Tailwind CSS, PWA (`next-pwa`).
+**Tech Stack:** * Frontend: Next.js 14 (App Router) - The application strictly utilizes the folder-based App Router and its component-centric architecture. React, Tailwind CSS, PWA (`next-pwa`).
 * Backend/Cloud: Firebase (Auth, Firestore, Cloud Functions, Storage), Google Cloud Secret Manager.
 * Integrations: Stripe API (Payments), YouTube Data API v3 (Sermons).
 **Core Paradigm (Hybrid CQRS):**
@@ -59,7 +59,7 @@ Use flat structures. Always use `admin.firestore.FieldValue.serverTimestamp()` f
 
 * **`Sermons`** (Doc ID = YouTube Video ID)
   * Synced via cron job. `title`, `youtubeUrl`, `publishedAt`, `description`.
-  * **Cron Synchronization:** A persistent `node-cron` task runs every 12 hours on the backend server. It authenticates with the YouTube Data API v3 using `YOUTUBE_API_KEY` and fetches the most recent videos from the `YOUTUBE_CHANNEL_ID`. The data is upserted into the `sermons` collection seamlessly using a Firestore `db.batch()` write to guarantee atomicity.
+  * **Cron Synchronization:** A persistent `node-cron` task runs every 12 hours on the backend server. It authenticates with the YouTube Data API v3 using `YOUTUBE_API_KEY` and fetches the most recent videos from a specific `YOUTUBE_PLAYLIST_ID` (using the `playlistItems` API). The data is upserted into the `sermons` collection seamlessly using a Firestore `db.batch()` write to guarantee atomicity.
 
 # 5. Strict Engineering Constraints (MANDATORY)
 1. **The DTO Mandate:** Every Cloud Function endpoint MUST use `Zod` to validate incoming Requests (DTOs). Never trust client input.

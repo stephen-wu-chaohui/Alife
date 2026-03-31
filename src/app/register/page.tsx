@@ -1,12 +1,14 @@
+"use client";
+
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "./App";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from "sonner";
 
-export const RegisterPage = () => {
+export default function RegisterPage() {
   const { user, profile, loading } = useAuth();
   const [realName, setRealName] = useState("");
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleRegister = async () => {
     if (!user) return;
@@ -27,7 +29,7 @@ export const RegisterPage = () => {
       }
 
       toast.success("Profile created!");
-      navigate("/");
+      router.push("/");
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -63,4 +65,4 @@ export const RegisterPage = () => {
       </div>
     </div>
   );
-};
+}

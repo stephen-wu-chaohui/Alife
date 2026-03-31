@@ -1,5 +1,5 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
+import next from "next";
 import path from "path";
 import { fileURLToPath } from "url";
 import admin from "firebase-admin";
@@ -285,28 +285,26 @@ async function startServer() {
   const fetchYouTubeSermons = async () => {
     try {
       const apiKey = process.env.YOUTUBE_API_KEY;
-      const channelId = process.env.YOUTUBE_CHANNEL_ID;
+      const playlistId = process.env.YOUTUBE_PLAYLIST_ID;
       
-      if (!apiKey || !channelId) {
+      if (!apiKey || !playlistId) {
         console.log("Missing YouTube API credentials in .env");
         return;
       }
 
-      console.log("Fetching latest YouTube sermons...");
+      console.log("Fetching latest YouTube sermons from playlist...");
       const youtube = google.youtube({ version: "v3", auth: apiKey });
-      const response = await youtube.search.list({
-        channelId,
+      const response = await youtube.playlistItems.list({
+        playlistId,
         part: ["snippet"],
-        order: "date",
         maxResults: 10,
-        type: ["video"],
       });
 
       const videos = response.data.items || [];
       const batch = db.batch();
 
       for (const video of videos) {
-        const videoId = video.id?.videoId;
+        const videoId = video.snippet?.resourceId?.videoId;
         if (!videoId) continue;
         
         const sermonRef = db.collection("sermons").doc(videoId);
@@ -332,24 +330,21 @@ async function startServer() {
   cron.schedule("0 */12 * * *", fetchYouTubeSermons);
 
   // ===============================================================
-  // Vite Middleware
+  // Next.js Integration
   // ===============================================================
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
+  const dev = process.env.NODE_ENV !== "production";
+  const nextApp = next({ dev, dir: process.cwd() });
+  const handle = nextApp.getRequestHandler();
+
+  await nextApp.prepare();
+
+  app.all("*", (req, res) => {
+    return handle(req, res);
+  });
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Next.js initialized in ${dev ? "dev" : "production"} mode`);
   });
 }
 
