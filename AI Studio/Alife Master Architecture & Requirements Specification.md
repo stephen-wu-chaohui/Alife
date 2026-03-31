@@ -58,7 +58,8 @@ Use flat structures. Always use `admin.firestore.FieldValue.serverTimestamp()` f
   * `Registrations` (Doc ID = `{eventId}_{uid}`): `responses` (JSON map matching schema), `paymentStatus` ('pending'|'paid'|'free'), `stripeSessionId`.
 
 * **`Sermons`** (Doc ID = YouTube Video ID)
-  * Synced via cron job. `title`, `youtubeUrl`, `publishedAt`.
+  * Synced via cron job. `title`, `youtubeUrl`, `publishedAt`, `description`.
+  * **Cron Synchronization:** A persistent `node-cron` task runs every 12 hours on the backend server. It authenticates with the YouTube Data API v3 using `YOUTUBE_API_KEY` and fetches the most recent videos from the `YOUTUBE_CHANNEL_ID`. The data is upserted into the `sermons` collection seamlessly using a Firestore `db.batch()` write to guarantee atomicity.
 
 # 5. Strict Engineering Constraints (MANDATORY)
 1. **The DTO Mandate:** Every Cloud Function endpoint MUST use `Zod` to validate incoming Requests (DTOs). Never trust client input.

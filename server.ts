@@ -7,6 +7,8 @@ import cookieParser from "cookie-parser";
 import { z } from "zod";
 import Stripe from "stripe";
 import dotenv from "dotenv";
+import cron from "node-cron";
+import { google } from "googleapis";
 
 dotenv.config();
 
@@ -276,6 +278,58 @@ async function startServer() {
       res.status(400).json({ error: error.message });
     }
   });
+
+  // ===============================================================
+  // Cron Job for YouTube Sermons
+  // ===============================================================
+  const fetchYouTubeSermons = async () => {
+    try {
+      const apiKey = process.env.YOUTUBE_API_KEY;
+      const channelId = process.env.YOUTUBE_CHANNEL_ID;
+      
+      if (!apiKey || !channelId) {
+        console.log("Missing YouTube API credentials in .env");
+        return;
+      }
+
+      console.log("Fetching latest YouTube sermons...");
+      const youtube = google.youtube({ version: "v3", auth: apiKey });
+      const response = await youtube.search.list({
+        channelId,
+        part: ["snippet"],
+        order: "date",
+        maxResults: 10,
+        type: ["video"],
+      });
+
+      const videos = response.data.items || [];
+      const batch = db.batch();
+
+      for (const video of videos) {
+        const videoId = video.id?.videoId;
+        if (!videoId) continue;
+        
+        const sermonRef = db.collection("sermons").doc(videoId);
+        batch.set(sermonRef, {
+          title: video.snippet?.title,
+          youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
+          publishedAt: video.snippet?.publishedAt ? admin.firestore.Timestamp.fromDate(new Date(video.snippet.publishedAt)) : admin.firestore.FieldValue.serverTimestamp(),
+          description: video.snippet?.description || "",
+        }, { merge: true });
+      }
+
+      await batch.commit();
+      console.log(`YouTube sermons synced successfully. Updated ${videos.length} videos.`);
+    } catch (error) {
+      console.error("Failed to sync YouTube sermons:", error);
+    }
+  };
+
+  // Run immediately on boot to ensure initial sync
+  fetchYouTubeSermons();
+
+  // Schedule to run every 12 hours
+  cron.schedule("0 */12 * * *", fetchYouTubeSermons);
 
   // ===============================================================
   // Vite Middleware
