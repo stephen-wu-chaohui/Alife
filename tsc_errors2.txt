@@ -1,0 +1,4 @@
+﻿server.ts(222,18): error TS2554: Expected 2-3 arguments, but got 1.
+src/App.tsx(523,28): error TS2304: Cannot find name 'signInWithPhoneNumber'.
+src/components/Editor.tsx(2,10): error TS2460: Module '"novel"' declares 'Editor' locally, but it is exported as 'EditorInstance'.
+src/firebase.ts(4,28): error TS2307: Cannot find module './firebase-applet-config.json' or its corresponding type declarations.

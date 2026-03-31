@@ -1,0 +1,9 @@
+{
+  "name": "Alife",
+  "description": "Verified Media & Ministry Orchestration Platform for seamless ministry management, sermon library access, and event engagement.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

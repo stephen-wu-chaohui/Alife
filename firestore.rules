@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/members/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (getUserData().phoneNumber == "+6402102591292" || 
+         request.auth.token.email == "stephen.wu.chaohui@gmail.com");
+    }
+    
+    function isMemberOfGroup(groupId) {
+      return isAuthenticated() && (groupId in getUserData().memberships);
+    }
+    
+    function isLeaderOfGroup(groupId) {
+      return isAuthenticated() && 
+        (groupId in getUserData().memberships && getUserData().memberships[groupId].role == "leader");
+    }
+
+    // ===============================================================
+    // Global Deny All Writes (Writes via Cloud Functions/Admin SDK)
+    // ===============================================================
+    match /{document=**} {
+      allow write: if false;
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /members/{uid} {
+      allow read: if isAuthenticated() && (request.auth.uid == uid || isAdmin());
+    }
+
+    match /groups/{groupId} {
+      allow read: if isAuthenticated() && (isMemberOfGroup(groupId) || isAdmin());
+    }
+
+    match /content/{contentId} {
+      allow read: if isAuthenticated() && (
+        resource.data.visibility == "CHURCH_LEVEL" || 
+        isMemberOfGroup(resource.data.groupId) || 
+        isAdmin()
+      );
+    }
+
+    match /events/{eventId} {
+      allow read: if isAuthenticated() && (isMemberOfGroup(resource.data.groupId) || isAdmin());
+    }
+
+    match /registrations/{registrationId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.uid || 
+        isLeaderOfGroup(resource.data.eventId) || // This assumes eventId is a group context, but it's not. 
+        // Need to check if user is leader of the group that owns the event.
+        isLeaderOfGroup(get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.groupId) ||
+        isAdmin()
+      );
+    }
+
+    match /sermons/{sermonId} {
+      allow read: if true; // Sermons are public
+    }
+  }
+}

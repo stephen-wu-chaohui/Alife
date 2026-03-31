@@ -1,0 +1,110 @@
+{
+  "entities": {
+    "Member": {
+      "title": "Member Profile",
+      "description": "User profile for church members",
+      "type": "object",
+      "properties": {
+        "realName": { "type": "string", "description": "Full legal name" },
+        "phoneNumber": { "type": "string", "description": "E.164 format phone number" },
+        "memberships": {
+          "type": "object",
+          "description": "Map of groupId to membership details",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "role": { "type": "string", "enum": ["leader", "member"] },
+              "joinedAt": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
+        "isActive": { "type": "boolean", "default": true }
+      },
+      "required": ["realName", "phoneNumber", "memberships"]
+    },
+    "Group": {
+      "title": "Group",
+      "description": "Church group or sub-group",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "parentId": { "type": ["string", "null"] },
+        "ancestors": { "type": "array", "items": { "type": "string" } },
+        "leaderIds": { "type": "array", "items": { "type": "string" } },
+        "joinPolicy": { "type": "string", "enum": ["AUTO_APPROVE", "AUTO_REFUSE", "MANUAL_WAITLIST"] }
+      },
+      "required": ["name", "leaderIds", "joinPolicy"]
+    },
+    "Content": {
+      "title": "Content",
+      "description": "Prayers, Devotions, or Pages",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "body": { "type": "object", "description": "Novel block editor JSON" },
+        "authorUid": { "type": "string" },
+        "groupId": { "type": "string" },
+        "type": { "type": "string", "enum": ["prayer", "devotion", "page"] },
+        "visibility": { "type": "string", "enum": ["GROUP_ONLY", "CHURCH_LEVEL"] }
+      },
+      "required": ["title", "body", "authorUid", "groupId", "type", "visibility"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "Church event",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "groupId": { "type": "string" },
+        "eventDate": { "type": "string", "format": "date-time" },
+        "isPaid": { "type": "boolean" },
+        "priceNzd": { "type": "number" },
+        "formSchema": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "type": { "type": "string", "enum": ["text", "select", "checkbox"] },
+              "label": { "type": "string" },
+              "options": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      },
+      "required": ["title", "groupId", "eventDate", "isPaid"]
+    },
+    "Registration": {
+      "title": "Event Registration",
+      "description": "User registration for an event",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "uid": { "type": "string" },
+        "responses": { "type": "object" },
+        "paymentStatus": { "type": "string", "enum": ["pending", "paid", "free"] },
+        "stripeSessionId": { "type": ["string", "null"] }
+      },
+      "required": ["eventId", "uid", "responses", "paymentStatus"]
+    },
+    "Sermon": {
+      "title": "Sermon",
+      "description": "YouTube sermon sync",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "youtubeUrl": { "type": "string" },
+        "publishedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "youtubeUrl", "publishedAt"]
+    }
+  },
+  "firestore": {
+    "/members/{uid}": { "schema": "Member", "description": "User profiles" },
+    "/groups/{groupId}": { "schema": "Group", "description": "Church groups" },
+    "/content/{contentId}": { "schema": "Content", "description": "Prayers, Devotions, Pages" },
+    "/events/{eventId}": { "schema": "Event", "description": "Church events" },
+    "/registrations/{registrationId}": { "schema": "Registration", "description": "Event registrations" },
+    "/sermons/{sermonId}": { "schema": "Sermon", "description": "YouTube sermons" }
+  }
+}
