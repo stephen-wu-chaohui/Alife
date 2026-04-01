@@ -3,6 +3,8 @@ import next from "next";
 import path from "path";
 import { fileURLToPath } from "url";
 import admin from "firebase-admin";
+import { getFirestore } from "firebase-admin/firestore";
+import fs from "fs";
 import cookieParser from "cookie-parser";
 import { z } from "zod";
 import Stripe from "stripe";
@@ -17,14 +19,24 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Read Firebase config if available
+const firebaseConfigPath = path.join(__dirname, "firebase-applet-config.json");
+let firebaseConfig: any = {};
+if (fs.existsSync(firebaseConfigPath)) {
+  firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, "utf-8"));
+}
+
 // Initialize Firebase Admin
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.applicationDefault(),
+    projectId: firebaseConfig.projectId || process.env.FIREBASE_PROJECT_ID,
   });
 }
 
-const db = admin.firestore();
+const db = firebaseConfig.firestoreDatabaseId 
+  ? getFirestore(admin.app(), firebaseConfig.firestoreDatabaseId)
+  : admin.firestore();
 const auth = admin.auth();
 
 async function startServer() {
